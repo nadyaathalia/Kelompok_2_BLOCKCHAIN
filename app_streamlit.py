@@ -3,7 +3,7 @@ import pandas as pd
 import json
 import time
 from datetime import datetime
-from block import Block
+from block import Block, EVotingBlockchain
 
 # Set page configuration
 st.set_page_config(
