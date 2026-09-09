@@ -1,6 +1,5 @@
 from block import Block
 
-
 class Blockchain:
 
     def __init__(self):
@@ -32,7 +31,7 @@ class Blockchain:
 
     def is_valid(self):
 
-        for i in range(1, ln(self,chain)):
+        for i in range(1, len(self.chain)):
 
             current = self.chain[i]
             previous = self.chain[i - 1]

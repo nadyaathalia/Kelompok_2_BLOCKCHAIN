@@ -3,7 +3,7 @@ import pandas as pd
 import json
 import time
 from datetime import datetime
-from block import Block, EVotingBlockchain
+from block import Block
 
 # Set page configuration
 st.set_page_config(
@@ -64,7 +64,7 @@ st.markdown("""
 # Inisialisasi Blockchain di Session State
 if "evote" not in st.session_state:
     st.session_state.evote = EVotingBlockchain(difficulty=2)
-    # Masukkan data sampel awal
+    
     sample_voters = [
         ("NIM101", "Ahmad Fauzi"),
         ("NIM102", "Bella Safitri"),

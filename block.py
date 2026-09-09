@@ -20,5 +20,7 @@ class Block:
         
         encoded = json.dumps(block_data, sort_keys=True).encode()
         return hashlib.sha256(encoded).hexdigest()
-    
-    
+
+class EvotingBlockChain:
+    def __init__(self):
+        
