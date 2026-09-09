@@ -23,4 +23,4 @@ class Block:
 
 class EvotingBlockChain:
     def __init__(self):
-        
+        pass

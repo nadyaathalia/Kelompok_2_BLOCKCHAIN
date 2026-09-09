@@ -63,7 +63,7 @@ st.markdown("""
 
 # Inisialisasi Blockchain di Session State
 if "evote" not in st.session_state:
-    st.session_state.evote = EVotingBlockchain(difficulty=2)
+    st.session_state.evote = EVotingBlockchain(difficulty=2) 
     
     sample_voters = [
         ("NIM101", "Ahmad Fauzi"),
