@@ -41,7 +41,7 @@ class Block:
 
 
 class EVotingBlockchain:
-    def __init__(self, difficulty=2):
+    def __init__(self, difficulty=3):
 
         self.difficulty = difficulty
 
