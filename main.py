@@ -1,7 +1,7 @@
 from block import EVotingBlockchain
 
 
-evoting = EVotingBlockchain(difficulty=3)
+evoting = EVotingBlockchain(difficulty=4)
 
 
 while True:
@@ -10,7 +10,7 @@ while True:
     print("        SISTEM E-VOTING BLOCKCHAIN")
     print("=" * 50)
     print("1. Daftar Pemilih")
-    print("2. Voting")
+    print("2. Voting") 
     print("3. Lihat Hasil Voting")
     print("4. Lihat Blockchain")
     print("5. Cek Validitas Blockchain")
