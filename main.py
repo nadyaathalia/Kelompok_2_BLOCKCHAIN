@@ -1,177 +1,337 @@
 from block import EVotingBlockchain
+import os
+
+BOLD = "\033[1m"
+RESET = "\033[0m"
+
+CYAN = "\033[96m"
+GREEN = "\033[92m"
+YELLOW = "\033[93m"
+RED = "\033[91m"
+WHITE = "\033[97m"
 
 
-#PEMILIH(1,2,3)
-blockchain.add_block({
-    "id_pemilih": "VOTERIE-001",
-    "candidate": "Kandidat 01",
-    "actor": "Pemilih",
-    "location": "TPS fakultas FITK"
-})
+def clear_screen():
+    os.system("cls" if os.name == "nt" else "clear")
 
-#PANITIA PEMILU AP PEMILWA HUEHE(cek data paldi apa ora)
-blockchain.add_block({
-    "id_pemilih": "VOT-002",
-    "status": "Terdaftar dan Valid",
-    "actor": "Panitia Pemilwa",
-    "location": "Portal Login Pemilih"
-})
 
-#SOSOK AKU
-blockchain.add_block({
-    "status_suara": "Suara Telah Dicatat",
-    "total_suara": 1,
-    "actor": "KPU Pemilwa",
-    "location": "Pusat Data"
-})
+def header():
+    print(CYAN + BOLD)
+    print("=" * 60)
+    print("              E-VOTING PEMILIHAN KETUA HIMPUNAN")
+    print("        Sistem Pemungutan Suara Digital")
+    print("=" * 60)
+    print(RESET)
 
-#INI SAKSI 
-blockchain.add_block({
-    "audit_status": "Valid tanpa Manipulasi",
-    "actor": "Saksi ",
-    "location": "Ruang Pengawasan"
-})
 
-while True:
+def pause():
+    input("\nTekan ENTER untuk melanjutkan...")
 
-    print("\n" + "=" * 50)
-    print("        SISTEM E-VOTING BLOCKCHAIN")
-    print("=" * 50)
+
+def show_menu():
+    print(YELLOW + BOLD)
+    print("MENU UTAMA")
+    print(YELLOW + "-" * 60)
+    print(RESET)
+
     print("1. Daftar Pemilih")
-    print("2. Voting") 
-    print("3. Lihat Hasil Voting")
-    print("4. Lihat Blockchain")
-    print("5. Cek Validitas Blockchain")
+    print("2. Lihat Daftar Pemilih")
+    print("3. Pilih Kandidat")
+    print("4. Lihat Hasil Voting")
+    print("5. Lihat Blockchain")
+    print("6. Validasi Blockchain")
+    print("7. Simulasi Manipulasi Block")
     print("0. Keluar")
-    print("=" * 50)
 
-    pilihan = input("Pilih menu: ")
+    print()
 
-    # =========================
-    # 1. DAFTAR PEMILIH
-    # =========================
-    if pilihan == "1":
 
-        print("\n--- DAFTAR PEMILIH ---")
+#TAB 1  Daftar Pemilih
+def register_voter(e_voting):
+    clear_screen()
+    header()
 
-        voter_id = input("Masukkan ID pemilih : ")
-        nama = input("Masukkan nama        : ")
+    print(BOLD + "DAFTAR PEMILIH" + RESET)
+    print("-" * 60)
 
-        berhasil, pesan = evoting.register_voter(
-            voter_id,
-            nama
-        )
+    voter_id = input("Masukkan ID Pemilih : ").strip()
+    name = input("Masukkan Nama        : ").strip()
 
-        print(pesan)
+    if not voter_id or not name:
+        print(RED + "\nID dan nama tidak boleh kosong!" + RESET)
+        pause()
+        return
 
-    # =========================
-    # 2. VOTING
-    # =========================
-    elif pilihan == "2":
+    success, message = e_voting.register_voter(voter_id, name)
 
-        print("\n--- PEMUNGUTAN SUARA ---")
+    if success:
+        print(GREEN + "\n✓ " + message + RESET)
+    else:
+        print(RED + "\n✗ " + message + RESET)
 
-        voter_id = input("Masukkan ID pemilih : ")
+    pause()
 
-        # Cek apakah pemilih terdaftar
-        if voter_id not in evoting.voters:
-            print("Pemilih belum terdaftar!")
-            continue
 
-        # Cek apakah sudah memilih
-        if evoting.voters[voter_id]["has_voted"]:
-            print("Pemilih sudah pernah memilih!")
-            continue
+# =========================
+# LIHAT PEMILIH
+# =========================
+def show_voters(e_voting):
+    clear_screen()
+    header()
 
-        print("\nDaftar Kandidat:")
+    print(BOLD + "DAFTAR PEMILIH" + RESET)
+    print("-" * 60)
 
-        for i, kandidat in enumerate(evoting.candidates):
-            print(f"{i + 1}. {kandidat}")
-
-        try:
-            pilihan_kandidat = int(
-                input("Pilih kandidat (1-2): ")
+    if not e_voting.voters:
+        print(YELLOW + "Belum ada pemilih yang terdaftar." + RESET)
+    else:
+        for i, (voter_id, voter) in enumerate(
+            e_voting.voters.items(), start=1
+        ):
+            status = (
+                "Sudah memilih"
+                if voter["has_voted"]
+                else "Belum memilih"
             )
 
-            candidate_index = pilihan_kandidat - 1
+            print(f"{i}. ID     : {voter_id}")
+            print(f"   Nama   : {voter['name']}")
+            print(f"   Status : {status}")
+            print()
 
-            if candidate_index < 0 or candidate_index >= len(
-                evoting.candidates
-            ):
-                print("Pilihan kandidat tidak tersedia!")
-                continue
+    pause()
 
-            berhasil, hasil = evoting.cast_vote(
-                voter_id,
-                candidate_index
-            )
 
-            if berhasil:
-                print("\nVoting berhasil!")
-                print("Kandidat :", hasil["candidate"])
-                print("Block    :", hasil["block_index"])
-                print("Hash     :", hasil["block_hash"])
-                print("Nonce    :", hasil["nonce"])
+# =========================
+# MEMILIH KANDIDAT
+# =========================
+def cast_vote(e_voting):
+    clear_screen()
+    header()
 
-            else:
-                print("Voting gagal:", hasil)
+    print(BOLD + "PEMUNGUTAN SUARA" + RESET)
+    print("-" * 60)
 
-        except ValueError:
-            print("Input harus berupa angka!")
+    voter_id = input("Masukkan ID Pemilih : ").strip()
 
-    # =========================
-    # 3. HASIL VOTING
-    # =========================
-    elif pilihan == "3":
+    if voter_id not in e_voting.voters:
+        print(RED + "\n✗ Pemilih belum terdaftar." + RESET)
+        pause()
+        return
 
-        print("\n--- HASIL VOTING ---")
+    voter = e_voting.voters[voter_id]
 
-        hasil = evoting.tally_votes()
+    if voter["has_voted"]:
+        print(RED + "\n✗ Pemilih sudah pernah memilih!" + RESET)
+        pause()
+        return
 
-        for kandidat, jumlah in hasil["tally"].items():
-            print(f"{kandidat}: {jumlah} suara")
+    print("\nPilihan Kandidat:")
 
-        print("-" * 40)
-        print("Total pemilih :", hasil["total_registered"])
-        print("Total suara   :", hasil["total_votes"])
-        print(
-            "Partisipasi   :",
-            f"{hasil['participation_rate']:.2f}%"
-        )
+    for i, candidate in enumerate(e_voting.candidates, start=1):
+        print(f"{i}. {candidate}")
 
-    # =========================
-    # 4. LIHAT BLOCKCHAIN
-    # =========================
-    elif pilihan == "4":
+    try:
+        choice = int(input("\nPilih kandidat (1-2): "))
 
-        print("\n--- BLOCKCHAIN ---")
+        candidate_index = choice - 1
 
-        for block in evoting.chain:
+        if candidate_index < 0 or candidate_index >= len(e_voting.candidates):
+            print(RED + "\n✗ Pilihan kandidat tidak valid." + RESET)
+            pause()
+            return
 
-            print("=" * 60)
-            print("INDEX :", block.index)
-            print("DATA  :", block.data)
-            print("PREV  :", block.previous_hash)
-            print("HASH  :", block.hash)
-            print("NONCE :", block.nonce)
+    except ValueError:
+        print(RED + "\n✗ Masukkan angka." + RESET)
+        pause()
+        return
 
-    # =========================
-    # 5. VALIDASI BLOCKCHAIN
-    # =========================
-    elif pilihan == "5":
+    success, result = e_voting.cast_vote(
+        voter_id,
+        candidate_index
+    )
 
-        valid, pesan = evoting.is_chain_valid()
+    if success:
+        print(GREEN + "\n✓ Suara berhasil disimpan ke blockchain!" + RESET)
 
-        print("\nBlockchain valid:", valid)
-        print("Status:", pesan)
-
-    # =========================
-    # 0. KELUAR
-    # =========================
-    elif pilihan == "0":
-
-        print("\nProgram selesai.")
-        break
+        print("\nInformasi Block:")
+        print(f"Block Index : {result['block_index']}")
+        print(f"Kandidat    : {result['candidate']}")
+        print(f"Nonce       : {result['nonce']}")
+        print(f"Voter Hash  : {result['voter_hash']}")
+        print(f"Block Hash  : {result['block_hash']}")
 
     else:
-        print("Menu tidak tersedia!")
+        print(RED + "\n✗ " + result + RESET)
+
+    pause()
+
+
+# =========================
+# HASIL VOTING
+# =========================
+def show_results(e_voting):
+    clear_screen()
+    header()
+
+    print(BOLD + "HASIL PEMUNGUTAN SUARA" + RESET)
+    print("-" * 60)
+
+    result = e_voting.tally_votes()
+
+    print(f"Total Pemilih Terdaftar : {result['total_registered']}")
+    print(f"Total Suara             : {result['total_votes']}")
+    print(
+        f"Tingkat Partisipasi    : "
+        f"{result['participation_rate']:.2f}%"
+    )
+
+    print("\nPerolehan Suara:")
+
+    for candidate, votes in result["tally"].items():
+        print(f"- {candidate}: {votes} suara")
+
+    pause()
+
+
+# =========================
+# LIHAT BLOCKCHAIN
+# =========================
+def show_blockchain(e_voting):
+    clear_screen()
+    header()
+
+    print(BOLD + "BLOCKCHAIN" + RESET)
+    print("-" * 60)
+
+    for block in e_voting.chain:
+        print(f"\nBlock #{block.index}")
+        print(f"Timestamp     : {block.timestamp}")
+        print(f"Data          : {block.data}")
+        print(f"Previous Hash : {block.previous_hash}")
+        print(f"Nonce         : {block.nonce}")
+        print(f"Hash          : {block.hash}")
+
+    pause()
+
+
+# =========================
+# VALIDASI BLOCKCHAIN
+# =========================
+def validate_blockchain(e_voting):
+    clear_screen()
+    header()
+
+    print(BOLD + "VALIDASI BLOCKCHAIN" + RESET)
+    print("-" * 60)
+
+    valid, message = e_voting.is_chain_valid()
+
+    if valid:
+        print(GREEN + "\n✓ " + message + RESET)
+    else:
+        print(RED + "\n✗ " + message + RESET)
+
+    pause()
+
+
+# =========================
+# SIMULASI MANIPULASI
+# =========================
+def tamper_block(e_voting):
+    clear_screen()
+    header()
+
+    print(BOLD + "SIMULASI MANIPULASI BLOCK" + RESET)
+    print("-" * 60)
+
+    if len(e_voting.chain) <= 1:
+        print(YELLOW + "\nBelum ada block voting." + RESET)
+        pause()
+        return
+
+    print("\nBlock yang tersedia:")
+
+    for block in e_voting.chain:
+        print(f"Block #{block.index}")
+
+    try:
+        block_index = int(
+            input("\nMasukkan index block yang ingin dimanipulasi: ")
+        )
+
+    except ValueError:
+        print(RED + "\n✗ Index harus berupa angka." + RESET)
+        pause()
+        return
+
+    fake_candidate = input(
+        "Masukkan kandidat palsu: "
+    ).strip()
+
+    success, message = e_voting.tamper_block(
+        block_index,
+        fake_candidate
+    )
+
+    if success:
+        print(RED + "\n⚠ " + message + RESET)
+        print(
+            YELLOW +
+            "Sekarang coba gunakan menu Validasi Blockchain."
+            + RESET
+        )
+    else:
+        print(RED + "\n✗ " + message + RESET)
+
+    pause()
+
+
+# =========================
+# PROGRAM UTAMA
+# =========================
+def main():
+
+    # difficulty = 3 berarti hash harus diawali 000
+    e_voting = EVotingBlockchain(difficulty=3)
+
+    while True:
+        clear_screen()
+        header()
+        show_menu()
+
+        choice = input("Pilih menu: ").strip()
+
+        if choice == "1":
+            register_voter(e_voting)
+
+        elif choice == "2":
+            show_voters(e_voting)
+
+        elif choice == "3":
+            cast_vote(e_voting)
+
+        elif choice == "4":
+            show_results(e_voting)
+
+        elif choice == "5":
+            show_blockchain(e_voting)
+
+        elif choice == "6":
+            validate_blockchain(e_voting)
+
+        elif choice == "7":
+            tamper_block(e_voting)
+
+        elif choice == "0":
+            clear_screen()
+            print(GREEN + "\nTerima kasih telah menggunakan E-Voting Blockchain!" + RESET)
+            break
+
+        else:
+            print(RED + "\n✗ Menu tidak tersedia." + RESET)
+            pause()
+
+
+if __name__ == "__main__":
+    main()
