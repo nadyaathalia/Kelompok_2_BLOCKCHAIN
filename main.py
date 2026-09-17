@@ -1,8 +1,36 @@
 from block import EVotingBlockchain
 
 
-evoting = EVotingBlockchain(difficulty=4)
+#PEMILIH(1,2,3)
+blockchain.add_block({
+    "id_pemilih": "VOTERIE-001",
+    "candidate": "Kandidat 01",
+    "actor": "Pemilih",
+    "location": "TPS fakultas FITK"
+})
 
+#PANITIA PEMILU AP PEMILWA HUEHE(cek data paldi apa ora)
+blockchain.add_block({
+    "id_pemilih": "VOT-002",
+    "status": "Terdaftar dan Valid",
+    "actor": "Panitia Pemilwa",
+    "location": "Portal Login Pemilih"
+})
+
+#SOSOK AKU
+blockchain.add_block({
+    "status_suara": "Suara Telah Dicatat",
+    "total_suara": 1,
+    "actor": "KPU Pemilwa",
+    "location": "Pusat Data"
+})
+
+#INI SAKSI 
+blockchain.add_block({
+    "audit_status": "Valid tanpa Manipulasi",
+    "actor": "Saksi ",
+    "location": "Ruang Pengawasan"
+})
 
 while True:
 
