@@ -10,10 +10,10 @@ def proof_of_work(block, difficulty):
         block.hash = hashlib.sha256(
             (
                 str(block.index)
-                + block.data + block.previous.hash
+                + block.data + block.previous_hash
                 + str(block.nonce)
             ).encode()
-        ).hexdigest
+        ).hexdigest()
 
     end_time = time.time()
 
