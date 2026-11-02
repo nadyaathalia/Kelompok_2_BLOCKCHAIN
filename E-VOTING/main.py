@@ -1,7 +1,7 @@
 from blockchain import Blockchain
 from block import Block
-from Kelompok_2_BLOCKCHAIN.pos import proof_of_stake
-from contracts.pow import proof_of_work
+from pos import proof_of_stake
+from pow import proof_of_work
 
 blockchain = Blockchain()
 
