@@ -12,3 +12,5 @@ def proof_of_stake(validators):
 
         if random_number < current:
             return validator
+
+ 

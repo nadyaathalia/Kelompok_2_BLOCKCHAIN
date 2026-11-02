@@ -1,7 +1,7 @@
 from blockchain import Blockchain
 from block import Block
-from pos import proof_of_stake
-from pow import proof_of_work
+from Kelompok_2_BLOCKCHAIN.pos import proof_of_stake
+from contracts.pow import proof_of_work
 
 blockchain = Blockchain()
 
@@ -50,7 +50,7 @@ block = Block(
     data="Evoting Pemilihan Ketua", 
     previous_hash="0")
 
-difficulty = 5
+difficulty = 2
 
 print("Data Block       :", block.data)
 print("Difficulty       :", difficulty)
@@ -62,10 +62,10 @@ print("Hash         :", block.hash)
 
 print("\n====== proof of stake ======")
 validators = {
-    "Validator_1": 100,
-    "Validator_2": 50,
-    "Validator_3": 500,
-    "Validator_4": 75
+    "Validator_1": 65,
+    "Validator_2": 15,
+    "Validator_3": 12,
+    "Validator_4": 8
 }
 print("\nValidators:")
 for v, stake in validators.items():
