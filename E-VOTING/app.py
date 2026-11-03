@@ -1,12 +1,30 @@
+from importlib.resources import path
+
 import streamlit as st
 import streamlit.components.v2 as components
+
+import json
+from pathlib import Path
 from web3 import Web3
+
 
 # =========================================================
 # KONFIGURASI
 # =========================================================
 
 RPC_URL = "http://127.0.0.1:8545"
+
+PROJECT_DIR = path(__file__).parent
+
+DEPLOYMENT_FILE = PROJECT_DIR / "deployment.json"
+
+ARTIFACT_PATH = (
+    PROJECT_DIR
+    / "artifacts"
+    / "contracts"
+    / "EVotingInventaris.sol"
+    / "EVotingInventaris.json"
+)
 
 st.set_page_config(
     page_title="E-Voting Inventaris",
@@ -17,6 +35,72 @@ st.set_page_config(
 st.title("🗳️ E-Voting Inventaris")
 st.caption(
     "Aplikasi Blockchain untuk Pencatatan Voting Berbasis NFT"
+)
+
+
+# =========================================================
+# KONEKSI WEB3.PY
+# =========================================================
+
+w3 = WEB3 = Web3(
+    Web3.HTTPProvider(
+        RPC_URL,
+        request_kwargs={"timeout": 5}
+    )
+)
+
+# =========================================================
+# CEK KONEKSI BLOCKCHAIN
+# =========================================================
+
+if not w3.is_connected():
+    st.error(
+        "Tidak dapat terhubung ke Hardhat Network. "
+        "Pastikan Hardhat Note sedang berjalan."
+    )
+    st.stop()
+
+    # =========================================================
+# LOAD CONTRACT ADDRESS
+# =========================================================
+
+if not DEPLOYMENT_FILE.exists():
+    st.error(
+        "File deployment.json tidak ditemukan. "
+        "Silahkan deploy smart contract terlebih dahulu."
+    )
+    st.stop()
+
+with open(DEPLOYMENT_PATH, "r") as file:
+    deployment_data = json.load(file)
+
+CONTRACT_ADDRESS = Web3.to_checksum_address(
+    deployment_data.get("address")
+)
+
+# =========================================================
+# LOAD CONTRACT ABI
+# =========================================================
+
+if not ARTIFACT_PATH.exists():
+    st.error(
+        "Artifact smart contract tidak ditemukan. "
+        "Silahkan compile smart contract terlebih dahulu."
+    )
+    st.stop()
+
+with open(ARTIFACT_PATH, "r") as file:
+    contract_artifact = json.load(file)
+
+CONTRACT_ABI = contract_artifact.get("abi") 
+
+# =========================================================
+# INISIALISASI SMART CONTRACT
+# =========================================================
+
+evoting_contract = w3.eth.contract(
+    address=CONTRACT_ADDRESS,
+    abi=CONTRACT_ABI,
 )
 
 # =========================================================
