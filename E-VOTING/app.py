@@ -1,409 +1,614 @@
-from importlib.resources import path
 
-import streamlit as st
-import streamlit.components.v2 as components
-
-import json
+from collections import Counter
 from pathlib import Path
-from web3 import Web3
+
+import plotly.express as px
+import streamlit as st
+
+from blockchain import Blockchain
 
 
-# =========================================================
+# =====================================================
 # KONFIGURASI
-# =========================================================
-
-RPC_URL = "http://127.0.0.1:8545"
-
-PROJECT_DIR = path(__file__).parent
-
-DEPLOYMENT_FILE = PROJECT_DIR / "deployment.json"
-
-ARTIFACT_PATH = (
-    PROJECT_DIR
-    / "artifacts"
-    / "contracts"
-    / "EVotingInventaris.sol"
-    / "EVotingInventaris.json"
-)
+# =====================================================
 
 st.set_page_config(
-    page_title="E-Voting Inventaris",
+    page_title="E-Voting UINSSC",
     page_icon="🗳️",
-    layout="centered",
+    layout="wide"
 )
 
-st.title("🗳️ E-Voting Inventaris")
-st.caption(
-    "Aplikasi Blockchain untuk Pencatatan Voting Berbasis NFT"
-)
+NAMA_KAMPUS = "Universitas Islam Negeri Siber Syekh Nurjati Cirebon"
+
+TOTAL_PEMILIH = 100  # Angka simulasi
+
+KANDIDAT = [
+    {
+        "id": "01",
+        "nama": "Pasangan Calon 01",
+        "foto": "",
+        "visi": "Mewujudkan organisasi mahasiswa yang aktif, terbuka, dan kolaboratif.",
+        "misi": [
+            "Meningkatkan komunikasi dan aspirasi mahasiswa.",
+            "Mengembangkan program kerja yang bermanfaat.",
+            "Mendorong kolaborasi antarmahasiswa."
+        ]
+    },
+    {
+        "id": "02",
+        "nama": "Pasangan Calon 02",
+        "foto": "",
+        "visi": "Membangun lingkungan kampus yang inovatif, inklusif, dan berdaya saing.",
+        "misi": [
+            "Mendorong kegiatan akademik dan nonakademik.",
+            "Meningkatkan transparansi program kerja.",
+            "Memperluas ruang kreativitas mahasiswa."
+        ]
+    },
+    {
+        "id": "03",
+        "nama": "Pasangan Calon 03",
+        "foto": "",
+        "visi": "Mewujudkan kepemimpinan mahasiswa yang responsif dan bertanggung jawab.",
+        "misi": [
+            "Menyediakan ruang aspirasi yang mudah diakses.",
+            "Mengembangkan kegiatan yang berdampak.",
+            "Memperkuat solidaritas mahasiswa."
+        ]
+    }
+]
+
+NAMA_KANDIDAT = [k["nama"] for k in KANDIDAT]
 
 
-# =========================================================
-# KONEKSI WEB3.PY
-# =========================================================
 
-w3 = WEB3 = Web3(
-    Web3.HTTPProvider(
-        RPC_URL,
-        request_kwargs={"timeout": 5}
-    )
-)
+# =====================================================
+# CSS / DESAIN UI
+# =====================================================
 
-# =========================================================
-# CEK KONEKSI BLOCKCHAIN
-# =========================================================
+st.markdown("""
+<style>
+.header-container {
+    background: linear-gradient(135deg, #111827, #1e293b);
+    padding: 30px;
+    border-radius: 16px;
+    margin-bottom: 25px;
+    text-align: center;
+}
 
-if not w3.is_connected():
-    st.error(
-        "Tidak dapat terhubung ke Hardhat Network. "
-        "Pastikan Hardhat Note sedang berjalan."
-    )
-    st.stop()
+.header-container h1 {
+    color: #ffffff !important;
+    font-size: 32px !important;
+    font-weight: 800 !important;
+    margin-bottom: 12px;
+}
 
-    # =========================================================
-# LOAD CONTRACT ADDRESS
-# =========================================================
+.header-container p {
+    color: #cbd5e1 !important;
+    font-size: 15px !important;
+    margin: 5px 0;
+}
+</style>
 
-if not DEPLOYMENT_FILE.exists():
-    st.error(
-        "File deployment.json tidak ditemukan. "
-        "Silahkan deploy smart contract terlebih dahulu."
-    )
-    st.stop()
-
-with open(DEPLOYMENT_PATH, "r") as file:
-    deployment_data = json.load(file)
-
-CONTRACT_ADDRESS = Web3.to_checksum_address(
-    deployment_data.get("address")
-)
-
-# =========================================================
-# LOAD CONTRACT ABI
-# =========================================================
-
-if not ARTIFACT_PATH.exists():
-    st.error(
-        "Artifact smart contract tidak ditemukan. "
-        "Silahkan compile smart contract terlebih dahulu."
-    )
-    st.stop()
-
-with open(ARTIFACT_PATH, "r") as file:
-    contract_artifact = json.load(file)
-
-CONTRACT_ABI = contract_artifact.get("abi") 
-
-# =========================================================
-# INISIALISASI SMART CONTRACT
-# =========================================================
-
-evoting_contract = w3.eth.contract(
-    address=CONTRACT_ADDRESS,
-    abi=CONTRACT_ABI,
-)
-
-# =========================================================
-# KOMPONEN JAVASCRIPT UNTUK METAMASK
-# =========================================================
-
-WALLET_HTML = """
-<div>
-  <button id="connect-wallet" type="button">
-    Connect Wallet
-  </button>
-  <p id="wallet-status">Wallet belum terhubung.</p>
+<div class="header-container">
+    <h1>🗳️ E-Voting UNSSC</h1>
+    <p>Universitas Islam Negeri Siber Syekh Nurjati Cirebon</p>
+    <p>Sistem Pemungutan Suara Berbasis Blockchain</p>
 </div>
-"""
+""", unsafe_allow_html=True)
+# =====================================================
+# INISIALISASI BLOCKCHAIN
+# =====================================================
 
-WALLET_CSS = """
-button {
-    padding: 0.7rem 1rem;
-    border: none;
-    border-radius: 8px;
-    background: var(--st-primary-color);
-    color: white;
-    font-weight: 600;
-    cursor: pointer;
-}
+if "blockchain" not in st.session_state:
+    st.session_state.blockchain = Blockchain()
 
-p {
-    color: var(--st-text-color);
-    overflow-wrap: anywhere;
-}
-"""
+if "selected_candidate" not in st.session_state:
+    st.session_state.selected_candidate = NAMA_KANDIDAT[0]
 
-WALLET_JS = """
-export default function(component) {
-    const { parentElement, setStateValue } = component;
+blockchain = st.session_state.blockchain
+votes = blockchain.chain[1:]
 
-    const button = parentElement.querySelector("#connect-wallet");
-    const status = parentElement.querySelector("#wallet-status");
 
-    let mounted = true;
+# =====================================================
+# FUNGSI SISTEM
+# =====================================================
 
-    async function readWallet() {
-        if (!window.ethereum) {
-            return;
-        }
+def sudah_memilih(id_pemilih):
 
-        const accounts = await window.ethereum.request({
-            method: "eth_accounts"
-        });
-
-        const chainId = await window.ethereum.request({
-            method: "eth_chainId"
-        });
-
-        if (!mounted) return;
-
-        if (accounts && accounts.length > 0) {
-            setStateValue("wallet", {
-                address: accounts[0],
-                chainId: chainId,
-                connected: true
-            });
-            status.textContent = "Wallet terhubung: " + accounts[0];
-        } else {
-            setStateValue("wallet", {
-                address: "",
-                chainId: chainId,
-                connected: false
-            });
-            status.textContent = "Wallet belum terhubung.";
-        }
-    }
-
-    async function connectWallet() {
-        if (!window.ethereum) {
-            status.textContent =
-                "MetaMask tidak ditemukan. Pasang ekstensi MetaMask.";
-            return;
-        }
-
-        try {
-            status.textContent =
-                "Menunggu persetujuan akses akun...";
-
-            await window.ethereum.request({
-                method: "eth_requestAccounts"
-            });
-
-            await readWallet();
-        } catch (error) {
-            status.textContent =
-                "Koneksi gagal: " +
-                (error.message || "Kesalahan tidak diketahui");
-        }
-    }
-
-    function onAccountsChanged(accounts) {
-        if (!mounted) return;
-
-        window.ethereum.request({ method: "eth_chainId" })
-            .then((chainId) => {
-                if (!mounted) return;
-
-                if (accounts && accounts.length > 0) {
-                    setStateValue("wallet", {
-                        address: accounts[0],
-                        chainId: chainId,
-                        connected: true
-                    });
-                    status.textContent =
-                        "Wallet terhubung: " + accounts[0];
-                } else {
-                    setStateValue("wallet", {
-                        address: "",
-                        chainId: chainId,
-                        connected: false
-                    });
-                    status.textContent = "Akun tidak terhubung.";
-                }
-            })
-            .catch(() => {});
-    }
-
-    function onChainChanged(chainId) {
-        if (!mounted) return;
-
-        window.ethereum.request({ method: "eth_accounts" })
-            .then((accounts) => {
-                if (!mounted) return;
-
-                setStateValue("wallet", {
-                    address: accounts && accounts.length > 0
-                        ? accounts[0]
-                        : "",
-                    chainId: chainId,
-                    connected: Boolean(accounts && accounts.length > 0)
-                });
-            })
-            .catch(() => {});
-    }
-
-    button.addEventListener("click", connectWallet);
-
-    if (window.ethereum) {
-        window.ethereum.on("accountsChanged", onAccountsChanged);
-        window.ethereum.on("chainChanged", onChainChanged);
-
-        // Baca koneksi yang sudah pernah diberikan izin.
-        readWallet().catch(() => {});
-    }
-
-    return () => {
-        mounted = false;
-        button.removeEventListener("click", connectWallet);
-
-        if (window.ethereum && window.ethereum.removeListener) {
-            window.ethereum.removeListener(
-                "accountsChanged", onAccountsChanged
-            );
-            window.ethereum.removeListener(
-                "chainChanged", onChainChanged
-            );
-        }
-    };
-}
-"""
-
-wallet_component = components.component(
-    name="coffee_metamask_wallet",
-    html=WALLET_HTML,
-    css=WALLET_CSS,
-    js=WALLET_JS,
-)
-
-# =========================================================
-# 1. KONEKSI KE HARDHAT RPC
-# =========================================================
-
-st.subheader("1. Status Blockchain Lokal")
-
-w3 = Web3(
-    Web3.HTTPProvider(
-        RPC_URL,
-        request_kwargs={"timeout": 5},
+    return any(
+        block.data.get("id_pemilih") == id_pemilih
+        for block in blockchain.chain[1:]
     )
-)
 
-rpc_connected = w3.is_connected()
 
-if rpc_connected:
-    st.success("Blockchain Hardhat berhasil dihubungkan.")
+def hitung_suara():
+
+    return Counter(
+        block.data.get("kandidat", "Tidak diketahui")
+        for block in blockchain.chain[1:]
+    )
+
+
+def simpan_suara(id_pemilih, kandidat):
+
+    blockchain.add_block({
+        "id_pemilih": id_pemilih,
+        "kandidat": kandidat,
+        "pemilihan": "Pemilihan Ketua"
+    })
+
+
+# =====================================================
+# HEADER
+# =====================================================
+
+# =====================================================
+# SIDEBAR / NAVIGASI
+# =====================================================
+
+with st.sidebar:
+
+    st.title("🗳️ E-Voting UIN")
+
+    st.caption("Prototype Akademik")
+
+    st.divider()
+
+    halaman = st.radio(
+        "NAVIGASI",
+        [
+            "Dashboard",
+            "Candidate List",
+            "Voting Page",
+            "Voting Results",
+            "Voter Verification"
+        ]
+    )
+
+    st.divider()
+
+    st.markdown("### Informasi Sistem")
+
+    st.caption("Python")
+    st.caption("Streamlit")
+    st.caption("Blockchain")
+    st.caption("Local Prototype")
+
+
+# =====================================================
+# DIALOG KONFIRMASI
+# =====================================================
+
+@st.dialog("Konfirmasi Pilihan")
+def dialog_konfirmasi(id_pemilih, kandidat):
+
+    st.warning(
+        "Pastikan pilihan kamu sudah benar sebelum melanjutkan."
+    )
+
+    st.write("**ID Pemilih:**", id_pemilih)
+    st.write("**Pilihan:**", kandidat)
 
     col1, col2 = st.columns(2)
 
+    with col1:
+
+        if st.button("Kembali", use_container_width=True):
+            st.rerun()
+
+    with col2:
+
+        if st.button(
+            "Konfirmasi Vote",
+            type="primary",
+            use_container_width=True
+        ):
+
+            if sudah_memilih(id_pemilih):
+
+                st.error("ID pemilih sudah memberikan suara.")
+
+            else:
+
+                simpan_suara(id_pemilih, kandidat)
+
+                st.session_state.last_vote_status = True
+
+                st.success("Suara berhasil dicatat!")
+
+                st.rerun()
+
+
+# =====================================================
+# HALAMAN 1 — DASHBOARD
+# =====================================================
+
+if halaman == "Dashboard":
+
+    st.subheader("📊 Dashboard Pemilihan")
+
+    st.caption(
+        "Ringkasan kondisi pemungutan suara saat ini."
+    )
+
+    total_suara = len(votes)
+
+    status_chain = (
+        "Valid"
+        if blockchain.is_valid()
+        else "Tidak Valid"
+    )
+
+    col1, col2, col3, col4 = st.columns(4)
+
     col1.metric(
-        "Chain ID RPC",
-        w3.eth.chain_id,
+        "Pemilih Terdaftar",
+        TOTAL_PEMILIH
     )
 
     col2.metric(
-        "Block Terbaru",
-        w3.eth.block_number,
+        "Jumlah Kandidat",
+        len(KANDIDAT)
     )
 
-    st.code(RPC_URL)
-else:
-    st.error(
-        "Hardhat RPC tidak dapat diakses. "
-        "Jalankan 'npx hardhat node' pada terminal lain."
+    col3.metric(
+        "Total Suara Masuk",
+        total_suara
     )
 
-# =========================================================
-# 2. KONEKSI METAMASK
-# =========================================================
+    col4.metric(
+        "Status Pemilihan",
+        "Aktif"
+    )
 
-st.divider()
-st.subheader("2. Hubungkan MetaMask")
+    st.divider()
 
-wallet_result = wallet_component(
-    key="coffee_metamask",
-    default={
-        "wallet": {
-            "address": "",
-            "chainId": "",
-            "connected": False,
+    st.subheader("🔗 Status Blockchain")
+
+    if blockchain.is_valid():
+
+        st.success("Blockchain valid dan terhubung.")
+
+    else:
+
+        st.error("Blockchain tidak valid.")
+
+    st.divider()
+
+    st.subheader("📋 Aktivitas Terbaru")
+
+    if votes:
+
+        recent = list(reversed(votes[-5:]))
+
+        st.dataframe(
+            [
+                {
+                    "Blok": block.index,
+                    "ID Pemilih": block.data.get("id_pemilih"),
+                    "Kandidat": block.data.get("kandidat"),
+                    "Waktu": block.timestamp
+                }
+                for block in recent
+            ],
+            use_container_width=True,
+            hide_index=True
+        )
+
+    else:
+
+        st.info("Belum ada aktivitas voting.")
+
+
+# =====================================================
+# HALAMAN 2 — CANDIDATE LIST
+# =====================================================
+
+elif halaman == "Candidate List":
+
+    st.subheader("👥 Candidate List")
+
+    st.caption(
+        "Kenali kandidat, visi, dan misi sebelum memberikan suara."
+    )
+
+    kolom = st.columns(3)
+
+    for i, kandidat in enumerate(KANDIDAT):
+
+        with kolom[i]:
+
+            with st.container(border=True):
+
+                st.markdown(
+                    f'<div class="candidate-number">'
+                    f'NOMOR URUT {kandidat["id"]}'
+                    f'</div>',
+                    unsafe_allow_html=True
+                )
+
+                if kandidat["foto"] and Path(kandidat["foto"]).is_file():
+
+                    st.image(
+                        kandidat["foto"],
+                        use_container_width=True
+                    )
+
+                else:
+
+                    st.markdown(
+                        """
+                        <div style="
+                            background:#e6f4ed;
+                            border-radius:12px;
+                            padding:35px;
+                            text-align:center;
+                            font-size:52px;">
+                            👤
+                        </div>
+                        """,
+                        unsafe_allow_html=True
+                    )
+
+                st.markdown(f"### {kandidat['nama']}")
+
+                st.markdown("**Visi**")
+
+                st.write(kandidat["visi"])
+
+                st.markdown("**Misi**")
+
+                for misi in kandidat["misi"]:
+
+                    st.markdown(f"- {misi}")
+
+                if st.button(
+                    "Pilih Kandidat",
+                    key=f"pilih_{kandidat['id']}",
+                    use_container_width=True
+                ):
+
+                    st.session_state.selected_candidate = kandidat["nama"]
+
+                    st.success(
+                        "Kandidat dipilih. Lanjutkan ke Voting Page."
+                    )
+
+
+# =====================================================
+# HALAMAN 3 — VOTING PAGE
+# =====================================================
+
+elif halaman == "Voting Page":
+
+    st.subheader("🗳️ Voting Page")
+
+    st.caption(
+        "Masukkan ID pemilih dan tentukan pilihan kandidat."
+    )
+
+    with st.container(border=True):
+
+        id_pemilih = st.text_input(
+            "ID Pemilih",
+            placeholder="Contoh: IF-2026-001"
+        )
+
+        pilihan_default = (
+            NAMA_KANDIDAT.index(
+                st.session_state.selected_candidate
+            )
+            if st.session_state.selected_candidate in NAMA_KANDIDAT
+            else 0
+        )
+
+        kandidat_dipilih = st.selectbox(
+            "Pilih Kandidat",
+            NAMA_KANDIDAT,
+            index=pilihan_default
+        )
+
+        st.info(
+            f"Pilihan kamu: **{kandidat_dipilih}**"
+        )
+
+        if st.button(
+            "Lanjutkan ke Konfirmasi",
+            type="primary",
+            use_container_width=True
+        ):
+
+            id_bersih = id_pemilih.strip()
+
+            if not id_bersih:
+
+                st.error("ID pemilih wajib diisi.")
+
+            elif sudah_memilih(id_bersih):
+
+                st.error(
+                    "ID pemilih ini sudah memberikan suara."
+                )
+
+            else:
+
+                dialog_konfirmasi(
+                    id_bersih,
+                    kandidat_dipilih
+                )
+
+    if st.session_state.get("last_vote_status"):
+
+        st.success("Transaksi berhasil dicatat.")
+
+
+# =====================================================
+# HALAMAN 4 — VOTING RESULTS
+# =====================================================
+
+elif halaman == "Voting Results":
+
+    st.subheader("📈 Voting Results")
+
+    st.caption(
+        "Grafik dan rekapitulasi perolehan suara kandidat."
+    )
+
+    totals = hitung_suara()
+
+    data_grafik = [
+        {
+            "Kandidat": kandidat,
+            "Jumlah Suara": totals.get(kandidat, 0)
         }
-    },
-    on_wallet_change=lambda: None,
-)
+        for kandidat in NAMA_KANDIDAT
+    ]
 
-wallet = wallet_result.wallet
+    total_suara = sum(
+        item["Jumlah Suara"]
+        for item in data_grafik
+    )
 
-# =========================================================
-# 3. INFORMASI WALLET DAN SALDO
-# =========================================================
+    st.metric(
+        "Total Suara Masuk",
+        total_suara
+    )
 
-st.divider()
-st.subheader("3. Informasi Wallet")
+    if total_suara > 0:
 
-if wallet and wallet.get("connected") and wallet.get("address"):
-    address = Web3.to_checksum_address(wallet["address"])
+        fig = px.bar(
+            data_grafik,
+            x="Kandidat",
+            y="Jumlah Suara",
+            color="Kandidat",
+            text="Jumlah Suara",
+            title="Perolehan Suara Kandidat"
+        )
 
-    st.success("Wallet berhasil terhubung.")
+        fig.update_layout(
+            showlegend=False,
+            plot_bgcolor="white",
+            paper_bgcolor="white",
+            yaxis_title="Jumlah Suara",
+            xaxis_title="Kandidat"
+        )
 
-    st.write("Alamat wallet:")
-    st.code(address)
+        st.plotly_chart(
+            fig,
+            use_container_width=True
+        )
 
-    try:
-        wallet_chain_id = int(wallet["chainId"], 16)
-        st.metric("Chain ID MetaMask", wallet_chain_id)
+        st.divider()
 
-        if not rpc_connected:
-            st.warning(
-                "Wallet terhubung, tetapi RPC tidak tersedia. "
-                "Saldo belum dapat dibaca."
+        st.subheader("Persentase Suara")
+
+        for item in data_grafik:
+
+            persen = (
+                item["Jumlah Suara"] / total_suara
+            ) * 100
+
+            st.write(
+                f"**{item['Kandidat']}** — "
+                f"{item['Jumlah Suara']} suara "
+                f"({persen:.1f}%)"
             )
 
-        elif wallet_chain_id != w3.eth.chain_id:
-            st.warning(
-                "Jaringan MetaMask berbeda dengan jaringan RPC Python. "
-                "Pilih jaringan Hardhat Local pada MetaMask."
+            st.progress(persen / 100)
+
+    else:
+
+        st.info(
+            "Grafik akan muncul setelah ada suara masuk."
+        )
+
+    st.divider()
+
+    st.subheader("Rekapitulasi Suara")
+
+    st.dataframe(
+        data_grafik,
+        use_container_width=True,
+        hide_index=True
+    )
+
+
+# =====================================================
+# HALAMAN 5 — VOTER VERIFICATION
+# =====================================================
+
+elif halaman == "Voter Verification":
+
+    st.subheader("🔐 Voter Verification")
+
+    st.caption(
+        "Periksa status pemilih berdasarkan ID."
+    )
+
+    id_verifikasi = st.text_input(
+        "Masukkan ID Pemilih",
+        placeholder="Contoh: IF-2026-001"
+    )
+
+    if st.button(
+        "Periksa Status",
+        type="primary"
+    ):
+
+        id_bersih = id_verifikasi.strip()
+
+        if not id_bersih:
+
+            st.error(
+                "Masukkan ID pemilih terlebih dahulu."
             )
 
         else:
-            st.success("Jaringan wallet sesuai dengan RPC.")
 
-            if st.button("Periksa Saldo ETH", type="primary"):
-                try:
-                    balance_wei = w3.eth.get_balance(address)
-                    balance_eth = w3.from_wei(
-                        balance_wei,
-                        "ether",
-                    )
+            sudah = sudah_memilih(id_bersih)
 
-                    st.metric(
-                        "Saldo ETH",
-                        f"{float(balance_eth):.6f} ETH",
-                    )
+            col1, col2 = st.columns(2)
 
-                    st.caption(
-                        "Saldo dibaca oleh Web3.py dari Hardhat RPC."
-                    )
+            col1.metric(
+                "Status Wallet",
+                "Simulasi Aktif"
+            )
 
-                except Exception as error:
-                    st.error("Gagal membaca saldo wallet.")
-                    st.caption(str(error))
+            col2.metric(
+                "Status Voting",
+                "Sudah Memilih" if sudah else "Belum Memilih"
+            )
 
-    except (ValueError, TypeError) as error:
-        st.error("Data Chain ID dari MetaMask tidak valid.")
-        st.caption(str(error))
+            if sudah:
 
-else:
-    st.info(
-        "Klik Connect Wallet, kemudian setujui akses akun di MetaMask."
-    )
+                st.success(
+                    "ID ditemukan dalam catatan voting."
+                )
 
-# =========================================================
-# CATATAN
-# =========================================================
+            else:
+
+                st.warning(
+                    "Belum ditemukan suara untuk ID ini."
+                )
+
+            st.info(
+                "Wallet masih berupa simulasi dan belum "
+                "terhubung ke wallet blockchain sungguhan."
+            )
+
+
+# =====================================================
+# FOOTER
+# =====================================================
 
 st.divider()
 
 st.caption(
-    "Praktikum ini hanya membaca informasi blockchain dan saldo. "
-    "Tidak ada transaksi transfer atau perubahan smart contract."
+    "E-Voting UIN Siber Syekh Nurjati Cirebon"
+)
+
+st.caption(
+    "Prototype akademik berbasis Python Blockchain. "
+    "Data tersimpan selama sesi aplikasi berjalan."
 )
