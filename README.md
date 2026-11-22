@@ -1,5 +1,7 @@
+<h1 align="center">
+  <span style="color: #D19A5D;">E-Voting UINSSC</span>
+</h1>
 
-# E-Voting UINSSC
 ## Tim Pengembang
 
 - Much Mentari Irwansyah
@@ -30,8 +32,8 @@ Pastikan sudah tersedia:
 **A. Clone Repository**
 
 ```bash
-git clone <URL-REPOSITORY>
-cd E-Voting-UINSSC
+git clone https://github.com/nadyaathalia/Kelompok_2_BLOCKCHAIN.git
+cd E-Voting
 ```
 
 **B. Instalasi Dependency Python**
@@ -39,7 +41,6 @@ cd E-Voting-UINSSC
 ```bash
 python -m venv venv
 venv\Scripts\activate
-pip install -r requirements.txt
 ```
 
 **C. Instalasi Dependency Hardhat**
